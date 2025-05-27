@@ -1,4 +1,4 @@
-# plugins/WeChatReply/config/wechat.yaml
+o# plugins/WeChatReply/config/wechat.yaml
 rules:
   - id: download
     triggers:
@@ -15,11 +15,11 @@ rules:
       - type: image
         url: "https://example.com/download_qr.png"
 
-  - id: payment
+  - id: hello
     triggers:
       - "你好"
       - "在吗"
-      - "hello"
+      - "hi"
     response:
       - type: text
         content: |
