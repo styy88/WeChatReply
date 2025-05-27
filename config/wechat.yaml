@@ -1,6 +1,6 @@
 # plugins/WeChatReply/config/wechat.yaml
 rules:
-  - id: download_help
+  - id: download
     triggers:
       - "下载"
       - "安装"
@@ -15,7 +15,7 @@ rules:
       - type: image
         url: "https://example.com/download_qr.png"
 
-  - id: payment_support
+  - id: payment
     triggers:
       - "支付"
       - "付款"
