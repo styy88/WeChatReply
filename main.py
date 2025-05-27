@@ -1,75 +1,111 @@
-from pkg.plugin.context import register, handler, llm_func, BasePlugin, APIHost, EventContext
-from pkg.plugin.events import *
-from pkg.platform.types import *
+from pkg.plugin.context import register, handler, BasePlugin, APIHost, EventContext
+from pkg.plugin.events import PersonNormalMessageReceived, GroupNormalMessageReceived
+from pkg.platform.types import MessageChain, Plain, Image
+import yaml
+import os
+import re
 
+# 注册插件（必须放在类定义前）
+@register(
+    name="WeChatReply",
+    description="微信关键词回复插件",
+    version="1.0",
+    author="xiaoxin",
+)
 class WeChatReplyPlugin(BasePlugin):
-
+    """微信关键词回复插件"""
+    
     def __init__(self, host: APIHost):
-        # 加载配置
-        self.keyword_actions = self.config.get("keyword_actions", [])
+        # 初始化配置
+        self.config = None
+        self._load_config()
+        self._init_logger(host)
+        
+        # 预编译正则表达式提升性能
+        self.pattern_cache = {}
         
     async def initialize(self):
-        self.ap.logger.info("微信关键词回复插件初始化完成")
+        """异步初始化资源"""
+        self.ap.logger.info("BusinessReply 插件初始化完成")
 
-    # 统一消息处理
-    async def process_message(self, ctx: EventContext, is_group: bool):
-        msg = ctx.event.text_message.strip()
-        sender_id = ctx.event.sender_id
+    def _init_logger(self, host):
+        """初始化日志系统"""
+        self.logger = host.ap.logger.getChild("BusinessReply")
+        self.logger.setLevel("DEBUG")
+
+    def _load_config(self):
+        """加载配置文件"""
+        config_path = os.path.join(
+            os.path.dirname(__file__), 
+            "config/wechat.yaml"
+        )
         
-        # 遍历配置的关键词
-        for action in self.keyword_actions:
-            if msg == action["keyword"]:
-                # 执行对应动作
-                if action["type"] == "text":
-                    reply = [Plain(action["content"])]
-                elif action["type"] == "quote":
-                    reply = self.build_quote_reply(ctx, action["content"])
-                elif action["type"] == "forward":
-                    reply = self.build_forward_reply(ctx, action["content"])
-                
-                # 添加回复
-                ctx.add_return("reply", reply)
-                ctx.prevent_default()
-                self.ap.logger.info(f"已响应 {sender_id} 的消息：{msg}")
-                break
+        # 配置文件校验
+        if not os.path.exists(config_path):
+            raise FileNotFoundError(f"配置文件未找到: {config_path}")
+            
+        with open(config_path, 'r', encoding='utf-8') as f:
+            self.config = yaml.safe_load(f)
+            
+        self.logger.debug(f"已加载 {len(self.config['rules'])} 条应答规则")
 
-    # 构建引用回复
-    def build_quote_reply(self, ctx: EventContext, content: str):
-        return MessageChain([
-            Quote(
-                id=ctx.event.message_id,
-                sender_id=ctx.event.sender_id,
-                origin=ctx.event.message_chain
-            ),
-            Plain(content)
-        ])
+    def _build_response(self, rule):
+        """构建消息链"""
+        chain = []
+        for item in rule['response']:
+            if item['type'] == 'text':
+                content = '\n'.join(line.strip() for line in item['content'].split('\n'))
+                chain.append(Plain(content))
+            elif item['type'] == 'image':
+                chain.append(Image(url=item['url']))
+        return MessageChain(chain)
 
-    # 构建转发回复
-    def build_forward_reply(self, ctx: EventContext, content: str):
-        return MessageChain([
-            Forward(
-                display=ForwardMessageDiaplay(
-                    title="重要消息转发",
-                    preview=[content[:20]]
-                ),
-                node_list=[
-                    ForwardMessageNode(
-                        sender_id=ctx.event.sender_id,
-                        sender_name="系统通知",
-                        message_chain=MessageChain([Plain(content)]),
-                        time=datetime.now()
-                    )
-                ]
-            )
-        ])
+    def _match_rule(self, message):
+        """高级匹配逻辑"""
+        clean_msg = re.sub(r'[^\w\u4e00-\u9fff]', '', message).lower()
+        
+        for rule in self.config['rules']:
+            # 缓存正则表达式
+            patterns = self.pattern_cache.get(rule['id'], [
+                re.compile(pattern, re.IGNORECASE) 
+                for pattern in rule['triggers']
+            ])
+            
+            for pattern in patterns:
+                if pattern.search(clean_msg):
+                    return rule
+        return None
 
-    @handler(PersonNormalMessageReceived)
-    async def person_message(self, ctx: EventContext):
-        await self.process_message(ctx, False)
+    @handler(PersonNormalMessageReceived, priority=100)
+    async def handle_private(self, ctx: EventContext):
+        """处理私聊消息"""
+        await self._process_message(ctx)
 
-    @handler(GroupNormalMessageReceived)
-    async def group_message(self, ctx: EventContext):
-        await self.process_message(ctx, True)
+    @handler(GroupNormalMessageReceived, priority=100)
+    async def handle_group(self, ctx: EventContext):
+        """处理群聊消息"""
+        await self._process_message(ctx)
+
+    async def _process_message(self, ctx):
+        """统一处理消息"""
+        message = ''.join(
+            str(p) for p in ctx.event.message_chain 
+            if isinstance(p, Plain)
+        ).strip()
+        
+        # 执行深度匹配
+        matched_rule = self._match_rule(message)
+        
+        if matched_rule:
+            # 构建响应
+            response = self._build_response(matched_rule)
+            
+            # 添加响应并阻止默认行为
+            ctx.add_return("reply", response)
+            ctx.prevent_default()
+            
+            self.logger.info(f"已响应消息: {message[:20]}...")
 
     def __del__(self):
-        self.ap.logger.info("微信关键词回复插件已卸载")
+        """资源清理"""
+        self.logger.info("插件已卸载")
