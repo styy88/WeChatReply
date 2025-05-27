@@ -7,7 +7,7 @@ import re
 
 @register(
     name="WeChatReply",
-    description="微信关键词自动应答系统",
+    description="微信关键词回复插件",
     version="2.2",
     author="xiaoxin",
 )
