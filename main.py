@@ -1,4 +1,3 @@
-# plugins/WeChatReply/main.py
 from pkg.plugin.context import register, handler, BasePlugin, APIHost, EventContext
 from pkg.plugin.events import PersonNormalMessageReceived, GroupNormalMessageReceived
 from pkg.platform.types import MessageChain, Plain, Image
@@ -9,11 +8,11 @@ import re
 @register(
     name="WeChatReply",
     description="微信关键词自动应答系统",
-    version="2.1",
+    version="2.2",
     author="xiaoxin",
 )
 class WeChatReplyPlugin(BasePlugin):
-    """企业级关键词应答解决方案"""
+    """修复消息处理的核心版本"""
     
     def __init__(self, host: APIHost):
         self.host = host
@@ -22,13 +21,7 @@ class WeChatReplyPlugin(BasePlugin):
         self.logger = host.ap.logger.getChild("WeChatReply")
         
         try:
-            # 加载配置文件
-            config_path = os.path.join(
-                os.path.dirname(__file__), 
-                "config", 
-                "wechat.yaml"
-            )
-            
+            config_path = os.path.join(os.path.dirname(__file__), "config", "wechat.yaml")
             if not os.path.exists(config_path):
                 self.logger.error("配置文件未找到，使用空配置")
                 return
@@ -53,22 +46,32 @@ class WeChatReplyPlugin(BasePlugin):
         except Exception as e:
             self.logger.error(f"初始化异常: {str(e)}")
 
+    def _get_message_text(self, ctx: EventContext):
+        """通用消息提取方法"""
+        try:
+            # 兼容不同事件类型的消息获取
+            if hasattr(ctx.event, 'query') and hasattr(ctx.event.query, 'message_chain'):
+                return ''.join(
+                    str(p) for p in ctx.event.query.message_chain
+                    if isinstance(p, Plain)
+                ).strip()
+            elif hasattr(ctx.event, 'text_message'):
+                return ctx.event.text_message.strip()
+            return ""
+        except Exception as e:
+            self.logger.error(f"消息提取失败: {str(e)}")
+            return ""
+
     def _build_response(self, rule):
         """安全构建响应消息"""
         try:
             chain = []
             for item in rule.get('response', []):
                 if item['type'] == 'text':
-                    content = '\n'.join(
-                        line.strip() 
-                        for line in str(item.get('content', '')).split('\n') 
-                        if line.strip()
-                    )
-                    if content:
-                        chain.append(Plain(content))
-                elif item['type'] == 'image':
-                    if url := item.get('url'):
-                        chain.append(Image(url=url))
+                    content = '\n'.join(line.strip() for line in str(item.get('content', '')).split('\n') if line.strip())
+                    if content: chain.append(Plain(content))
+                elif item['type'] == 'image' and item.get('url'):
+                    chain.append(Image(url=item['url']))
             return MessageChain(chain) if chain else None
         except Exception as e:
             self.logger.error(f"构建响应失败: {str(e)}")
@@ -78,16 +81,13 @@ class WeChatReplyPlugin(BasePlugin):
         """执行消息匹配"""
         try:
             clean_text = re.sub(r'[^\w\u4e00-\u9fff]', '', text).strip()
-            if not clean_text:
-                return None
-                
             for rule in self.config['rules']:
                 for pattern in self.pattern_cache.get(rule['id'], []):
                     if pattern.search(clean_text):
                         return rule
             return None
         except Exception as e:
-            self.logger.error(f"匹配过程异常: {str(e)}")
+            self.logger.error(f"匹配异常: {str(e)}")
             return None
 
     @handler(PersonNormalMessageReceived)
@@ -95,28 +95,25 @@ class WeChatReplyPlugin(BasePlugin):
     async def handle_message(self, ctx: EventContext):
         """统一消息处理入口"""
         try:
-            # 提取纯文本内容
-            message = ''.join(
-                str(p) for p in ctx.event.message_chain 
-                if isinstance(p, Plain)
-            ).strip()
-            
+            # 提取消息文本
+            message = self._get_message_text(ctx)
             if not message:
                 return
-                
+
             # 执行匹配
             matched_rule = self._match_message(message)
             if not matched_rule:
                 return
-                
-            # 构建响应
+
+            # 构建并发送响应
             if response := self._build_response(matched_rule):
                 ctx.add_return("reply", response)
-                ctx.prevent_default()
-                self.logger.info(f"已响应: {message[:15]}...")
+                ctx.prevent_default()  # 关键阻断调用
+                self.logger.info(f"已阻断并响应: {message[:15]}...")
 
         except Exception as e:
-            self.logger.error(f"处理消息异常: {str(e)}")
+            self.logger.error(f"处理异常: {str(e)}")
+            ctx.prevent_default()  # 异常时也阻断
 
     def __del__(self):
-        self.logger.info("插件已安全卸载")
+        self.logger.info("插件安全卸载")
