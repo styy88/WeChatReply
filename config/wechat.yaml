@@ -1,101 +1,37 @@
 rules:
-  - triggers: ['委拍参拍']
+  - id: download_help
+    triggers:
+      - r'(?i).*?(下载|安装|获取APP)'
     response:
       - type: text
         content: |
-          委拍参拍流程：
-          1. 登录后进入「拍卖大厅」
-          2. 选择标的物点击「申请委拍」
-          3. 提交资质材料审核
-          4. 审核通过后支付保证金
-          5. 参与竞拍
+          📱 下载指引：
+          1. iOS用户：访问App Store搜索【XX应用】
+          2. 安卓用户：扫码下载安装包
+          扫码地址：https://example.com/download
       - type: image
-        url: "https://example.com/auction_guide.jpg"
-    match_mode: contains
+        url: "https://example.com/qrcode.png"
 
-  - triggers: ['怎么下载', '苹果怎么下载', '安卓怎么下载']
+  - id: payment_help
+    triggers:
+      - r'(?i).*?(支付|付款|充值|转账)'
     response:
       - type: text
         content: |
-          📱 下载安装指南：
-          iOS用户：App Store搜索「XX拍卖」
-          安卓用户：官网扫码下载安装包
-          扫码入口：https://example.com/download
-      - type: image
-        url: "https://example.com/download_qrcode.jpg"
-    match_mode: contains
+          💳 支付方式：
+          - 微信/支付宝扫码支付
+          - 银联在线支付
+          - 对公账户转账
+          客服电话：400-123-4567
 
-  - triggers: ['怎么使用']
+  - id: registration
+    triggers:
+      - r'(?i)注册|新用户|开通账号'
     response:
       - type: text
         content: |
-          🖥 使用指南：
-          1. 注册/登录账号
-          2. 实名认证（我的-身份认证）
-          3. 充值保证金（我的-资金管理）
-          4. 选择标的物参与竞拍
-          完整手册：https://example.com/manual
-      - type: image
-        url: "https://example.com/user_manual.jpg"
-
-  - triggers: ['提现']
-    response:
-      - type: text
-        content: |
-          💰 提现流程：
-          1. 进入「我的-资金管理」
-          2. 选择提现账户
-          3. 输入提现金额（最低100元）
-          4. 提交后1-3工作日到账
-          注意：提现手续费0.1%
-      - type: image
-        url: "https://example.com/withdraw_flow.jpg"
-
-  - triggers: ['充值']
-    response:
-      - type: text
-        content: |
-          💳 充值方式：
-          1. 网银支付（支持主流银行）
-          2. 支付宝/微信扫码支付
-          3. 对公账户转账
-          注意：充值金额需为100的整数倍
-          充值入口：我的-资金管理-充值
-      - type: image
-        url: "https://example.com/recharge.jpg"
-
-  - triggers: ['注册']
-    response:
-      - type: text
-        content: |
-          📝 注册步骤：
-          1. 点击首页「立即注册」
+          📝 注册流程：
+          1. 访问 https://example.com/register
           2. 输入手机号获取验证码
           3. 设置登录密码（8-16位字母+数字）
           4. 完成实名认证
-          立即注册：https://example.com/register
-      - type: image
-        url: "https://example.com/register_step.jpg"
-
-  - triggers: ['开通']
-    response:
-      - type: text
-        content: |
-          🔑 权限开通：
-          1. 完成实名认证
-          2. 缴纳保证金（最低5000元）
-          3. 通过资格审核
-          4. 签署电子协议
-          开通入口：我的-账户权限
-      - type: image
-        url: "https://example.com/auth_open.jpg"
-
-  - triggers: ['帮助']
-    response:
-      - type: text
-        content: |
-          🆘 常用帮助关键词：
-          注册/登录/充值/提现/下载
-          委拍/参拍/使用方法/开通权限
-          发送对应关键词获取详细指南
-    match_mode: exact
