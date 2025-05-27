@@ -1,41 +1,24 @@
-# manifest.yaml
 apiVersion: v1
 kind: Plugin
 metadata:
   author: xiaoxin
   name: WeChatReply
-  epository:https://github.com/styy88/WeChatReply
-  version: 0.2.0
+  repository: 'https://github.com/styy88/WeChatReply'
+  version: 3.1.0
   description:
-    en_US: Plugin for sending WeChatReply
-    zh_Hans: 微信关键词自动回复插件
+    en_US: "Automatic keyword reply plugin"
+    zh_Hans: "微信关键词自动回复插件"
   label:
-    zh_Hans: 微信自动回复
+    en_US: "WeChatReply"
+    zh_Hans: "微信回复"
 spec:
   config:
-    - name: keyword_actions
-      label:
-        zh_Hans: 关键词配置
-      type: array[object]
-      default: []
-      items:
-        type: object
-        properties:
-          keyword:
-            type: string
-            label: 关键词
-          type:
-            type: select
-            options:
-              - name: text
-                label: 文本回复
-              - name: quote
-                label: 引用回复
-              - name: forward
-                label: 转发消息
-          content:
-            type: string
-            label: 回复内容
+    - name: enable
+      type: boolean
+      default: true
+    - name: response_delay
+      type: integer
+      default: 3
 execution:
   python:
     path: main.py
