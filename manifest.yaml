@@ -4,10 +4,10 @@ metadata:
   author: xiaoxin
   name: WeChatReply
   repository: 'https://github.com/styy88/WeChatReply'
-  version: 3.1.0
+  version: 4.1.0
   description:
     en_US: "Automatic keyword reply plugin"
-    zh_Hans: "微信关键词自动回复插件"
+    zh_Hans: "微信关键词回复插件"
   label:
     en_US: "WeChatReply"
     zh_Hans: "微信回复"
