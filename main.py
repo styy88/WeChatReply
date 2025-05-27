@@ -26,7 +26,7 @@ class WeChatReplyPlugin(BasePlugin):
             config_path = os.path.join(
                 os.path.dirname(__file__), 
                 "config", 
-                "reply_rules.yaml"
+                "wechat.yaml"
             )
             
             if not os.path.exists(config_path):
