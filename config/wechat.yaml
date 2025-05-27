@@ -1,4 +1,4 @@
-o# plugins/WeChatReply/config/wechat.yaml
+# plugins/WeChatReply/config/reply_rules.yaml
 rules:
   - id: download
     triggers:
