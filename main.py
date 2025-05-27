@@ -24,7 +24,7 @@ class WeChatReplyPlugin(BasePlugin):
             config_path = os.path.join(os.path.dirname(__file__), "config", "wechat.yaml")
             self._load_config(config_path)
             self._compile_patterns()
-            self.logger.info(f"成功加载 {len(self.config['rules'])} 条应答规则")
+            self.logger.info(f"成功加载 {len(self.config['rules'])} 条回复规则")
         except Exception as e:
             self.logger.error(f"初始化失败: {str(e)}")
             self.config = {'rules': []}
